@@ -1,0 +1,28 @@
+# Minimal fake Input Leap server: drives every message type at a client for testing.
+import socket, struct, sys
+def msg(code, fmt='', *a): return code.encode() + struct.pack('>' + fmt, *a)
+def send(c, m): c.sendall(struct.pack('>I', len(m)) + m)
+def recv(c):
+    n = struct.unpack('>I', c.recv(4))[0]; return c.recv(n)
+s = socket.socket(); s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1); s.bind(('127.0.0.1', 24801)); s.listen(1)
+c, _ = s.accept()
+send(c, msg('Barrier', 'hh', 1, 6))
+hb = recv(c); print('helloback:', hb)
+assert hb.startswith(b'Barrier\x00\x01\x00\x06')
+info = recv(c); print('info:', info)
+send(c, msg('CIAK')); send(c, msg('CROP')); send(c, msg('DSOP', 'I', 0))
+send(c, msg('QINF')); print('info2:', recv(c))
+send(c, msg('CIAK'))
+send(c, msg('CINN', 'hhIh', 100, 200, 1, 0))
+send(c, msg('DMMV', 'hh', 300, 400))
+send(c, msg('DMRM', 'hh', 5, -5))
+send(c, msg('DMDN', 'B', 1)); send(c, msg('DMUP', 'B', 1)); send(c, msg('DMDN', 'B', 3)); send(c, msg('DMUP', 'B', 3))
+send(c, msg('DMWM', 'hh', 0, -120)); send(c, msg('DMWM', 'hh', 0, 60)); send(c, msg('DMWM', 'hh', 0, 60))
+send(c, msg('DKDN', 'HHH', ord('a'), 0, 0x1e)); send(c, msg('DKUP', 'HHH', ord('a'), 0, 0x1e))
+send(c, msg('DKDN', 'HHH', 0xEFE1, 1, 0x2a)); send(c, msg('DKDN', 'HHH', ord('A'), 1, 0x1e)); send(c, msg('DKUP', 'HHH', ord('A'), 1, 0x1e)); send(c, msg('DKUP', 'HHH', 0xEFE1, 0, 0x2a))
+send(c, msg('DKDN', 'HHH', 0xEF51, 0, 0x14b)); send(c, msg('DKRP', 'HHHH', 0xEF51, 0, 2, 0x14b)); send(c, msg('DKUP', 'HHH', 0xEF51, 0, 0x14b))
+send(c, msg('DKDN', 'HHH', 0, 0, 0x1c)); send(c, msg('DKUP', 'HHH', 0, 0, 0x1c))   # KeyID 0 -> button fallback (Enter)
+send(c, msg('DKDN', 'HHH', 0xEFEB, 0, 0x15b)); send(c, msg('COUT'))                 # leave with Super held -> must release
+send(c, msg('CALV')); print('keepalive reply:', recv(c))
+send(c, msg('CBYE'))
+c.close(); print('fake server done')
