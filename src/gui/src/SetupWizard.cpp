@@ -39,6 +39,13 @@ SetupWizard::SetupWizard(MainWindow& mainWindow, bool startMain) :
 
 #elif defined(Q_OS_WIN)
 
+    // The default (Aero/Modern) wizard style paints the page background white
+    // regardless of the system theme, while labels and radio buttons take their
+    // colour from the palette. Under the Windows dark theme that renders the
+    // page text white-on-white, i.e. invisible. ClassicStyle draws the pages
+    // from the palette, so the wizard stays readable in both themes.
+    setWizardStyle(QWizard::ClassicStyle);
+
     // when aero is disabled on windows, the next/back buttons
     // are hidden (must be a qt bug) -- resizing the window
     // to +1 of the original height seems to fix this.
